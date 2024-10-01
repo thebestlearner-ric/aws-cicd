@@ -1,19 +1,32 @@
-provider "aws" {
-    access_key = "${var.aws_access_key}"
-    secret_key = "${var.aws_secret_key}"
-    region = "${var.region}"
-    token = "${var.token}"
+# Load variables from AWS Secrets Manager
+module "secrets" {
+  source = "./secrets.tf"
 }
 
-module "s3" {
-    source = "./S3"
-    #bucket name should be unique
-    bucket_name = "autoscaling-ric"   
-    iam_user_id = "${var.aws_access_key}"    
+# Load VPC and networking resources
+module "vpc" {
+  source = "./vpc.tf"
 }
 
-module "Scale" {
-  # source = "/Users/Geric/Desktop/Learning/Devops/AutoScale/Scale"
-  source = "./Scale"
-  region = "${var.region}"
+# Create EKS Cluster and Worker Nodes
+module "eks" {
+  source = "./eks.tf"
+}
+
+# Create RDS MariaDB Instance
+module "rds" {
+  source = "./rds.tf"
+
+  # Pass in sensitive RDS credentials from AWS Secrets Manager
+  username = module.secrets.rds_username
+  password = module.secrets.rds_password
+}
+
+# Outputs (optional)
+output "eks_cluster_name" {
+  value = module.eks.eks_cluster_name
+}
+
+output "rds_endpoint" {
+  value = module.rds.rds_endpoint
 }
