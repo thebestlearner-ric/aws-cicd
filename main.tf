@@ -1,21 +1,28 @@
+provider "aws" {
+  region = "us-west-2"
+}
+
+module "backend" {
+  source = "./backend"
+}
 # Load variables from AWS Secrets Manager
 module "secrets" {
-  source = "./secrets.tf"
+  source = "./secrets"
 }
 
 # Load VPC and networking resources
 module "vpc" {
-  source = "./vpc.tf"
+  source = "./vpc"
 }
 
 # Create EKS Cluster and Worker Nodes
 module "eks" {
-  source = "./eks.tf"
+  source = "./eks"
 }
 
 # Create RDS MariaDB Instance
 module "rds" {
-  source = "./rds.tf"
+  source = "./rds"
 
   # Pass in sensitive RDS credentials from AWS Secrets Manager
   username = module.secrets.rds_username
@@ -23,10 +30,10 @@ module "rds" {
 }
 
 # Outputs (optional)
-output "eks_cluster_name" {
+output "eks_name" {
   value = module.eks.eks_cluster_name
 }
 
-output "rds_endpoint" {
+output "rds_name" {
   value = module.rds.rds_endpoint
 }
