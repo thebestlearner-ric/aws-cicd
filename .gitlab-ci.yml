@@ -1,0 +1,59 @@
+include:
+  - template: Terraform/Base.gitlab-ci.yml   # Core Terraform integration
+  - template: Jobs/SAST-IaC.gitlab-ci.yml    # Security scans for IaC
+
+stages:
+  - validate
+  - test
+  - build
+  - deploy
+  - cleanup
+
+# Terraform Format Check
+fmt:
+  extends: .terraform:fmt
+  needs: []
+
+# Terraform Validation Check
+validate:
+  extends: .terraform:validate
+  needs: []
+
+# Terraform Build Step (plan)
+build:
+  extends: .terraform:build
+  environment:
+    name: $TF_STATE_NAME  # Ensure TF_STATE_NAME is set in GitLab CI/CD variables
+    action: prepare
+  variables:
+    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID      # Set these in GitLab CI/CD variables
+    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+    TF_VAR_rds_username: $TF_VAR_rds_username  # Username pulled from Secrets Manager
+    TF_VAR_rds_password: $TF_VAR_rds_password  # Password pulled from Secrets Manager
+  script:
+    - terraform init -input=false
+    - terraform plan -out=tfplan -input=false
+
+# Deploy Step (apply)
+deploy:
+  extends: .terraform:deploy
+  dependencies:
+    - build
+  environment:
+    name: $TF_STATE_NAME  # Ensure TF_STATE_NAME is set in GitLab CI/CD variables
+    action: start
+  variables:
+    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+    TF_VAR_rds_username: $TF_VAR_rds_username
+    TF_VAR_rds_password: $TF_VAR_rds_password
+  script:
+    - terraform apply -input=false tfplan
+
+# Cleanup Step (optional)
+cleanup:
+  extends: .terraform:destroy
+  environment:
+    name: $TF_STATE_NAME
+  script:
+    - terraform destroy -auto-approve
