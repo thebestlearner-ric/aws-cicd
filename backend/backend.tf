@@ -1,14 +1,13 @@
-terraform {
-  backend "s3" {
-    bucket = "terraform-cloud-bucket"
-    key    = "terraform/state"
-    region = "us-west-2"
-  }
-}
+module "s3_bucket" {
+  source = "terraform-aws-modules/s3-bucket/aws"
 
-resource "aws_s3_bucket" "terraform_state" {
   bucket = "terraform-cloud-bucket"
-  versioning {
+  acl    = "private"
+
+  control_object_ownership = true
+  object_ownership         = "ObjectWriter"
+
+  versioning = {
     enabled = true
   }
 }
